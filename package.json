@@ -27,7 +27,7 @@
 		"@companion-surface/base": "~1.0.0",
 		"@julusian/image-rs": "^2.1.1",
 		"@julusian/jpeg-turbo": "^3.0.1",
-		"node-hid": "^3.2.0"
+		"node-hid": "^3.3.0"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.5.0",
