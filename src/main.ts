@@ -54,7 +54,7 @@ const MiraboxPlugin: SurfacePlugin<MiraboxPluginInfo> = {
 		context: SurfaceContext,
 	): Promise<OpenSurfaceResult> => {
 		const device = await HIDAsync.open(pluginInfo.device.path).catch(() => {
-			throw new Error('Device not found')
+			throw new Error(`Device not found: ${pluginInfo.device.path}`)
 		})
 
 		logger.debug(`Opening ${pluginInfo.device.path} device: ${pluginInfo.model.productName} (${surfaceId})`)

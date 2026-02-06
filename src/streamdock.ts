@@ -210,7 +210,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 			}
 
 			try {
-				imgData = jpg.compressSync(imageBuffer, options)
+				imgData = await jpg.compress(imageBuffer, options)
 			} catch (error) {
 				console.error(`compressing jpg at position ${row}/${column} failed`, error)
 			}
