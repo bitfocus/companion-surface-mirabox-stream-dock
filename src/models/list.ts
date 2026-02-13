@@ -17,6 +17,8 @@ export interface StreamDockModelDefinition {
 	iconRotation: number
 	/** If set, the packet size will be overridden */
 	packetSize?: number
+	/** If set and above zero, a heartbeat signal will be sent every heartbeat ms to keep the device alive */
+	heartbeat?: number
 
 	inputs: StreamDockInputDefinition[]
 	outputs: StreamDockOutputDefinition[]
