@@ -3,6 +3,7 @@ import type { StreamDockModelDefinition } from './list.js'
 export const N4_1245Definition: StreamDockModelDefinition = {
 	productName: 'Stream Dock N4',
 	iconRotation: 180,
+	heartbeat: 10000,
 	usbIds: [
 		// TODO - why is this unused?
 	],

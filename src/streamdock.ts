@@ -150,6 +150,10 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		return this.model.iconRotation
 	}
 
+	get heartbeatInterval(): number {
+		return this.model.heartbeat ?? -1
+	}
+
 	async writeRaw(data: Buffer): Promise<void> {
 		const written = await this.device.write(data).catch(() => {
 			throw new Error('Write to Stream Dock failed!')

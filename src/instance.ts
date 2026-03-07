@@ -14,6 +14,7 @@ import { StreamDock } from './streamdock.js'
 import type { HIDAsync } from 'node-hid'
 import type { StreamDockModelDefinition } from './models/list.js'
 import * as imageRs from '@julusian/image-rs'
+import { Heartbeat } from './heartbeat.js'
 
 export class MiraboxWrapper implements SurfaceInstance {
 	readonly #logger: ModuleLogger
@@ -21,6 +22,7 @@ export class MiraboxWrapper implements SurfaceInstance {
 	readonly #streamDock: StreamDock
 	readonly #surfaceId: string
 	readonly #context: SurfaceContext
+	readonly #heartbeat: Heartbeat
 
 	public get surfaceId(): string {
 		return this.#surfaceId
@@ -40,6 +42,7 @@ export class MiraboxWrapper implements SurfaceInstance {
 		this.#streamDock = new StreamDock(deviceInfo, device, model)
 		this.#surfaceId = surfaceId
 		this.#context = context
+		this.#heartbeat = new Heartbeat(this.#streamDock.heartbeatInterval).unref()
 
 		this.#streamDock.on('error', (e) => context.disconnect(e as any))
 
@@ -62,14 +65,21 @@ export class MiraboxWrapper implements SurfaceInstance {
 				this.#context.rotateLeftById(getControlId(control))
 			}
 		})
+
+		this.#heartbeat.on('beat', () => {
+			this.#streamDock.sendHeartbeat().catch(() => null)
+		})
 	}
 
 	async init(): Promise<void> {
 		await this.#streamDock.wakeScreen()
 		await this.#streamDock.clearPanel()
+		this.#heartbeat.setInterval(this.#streamDock.heartbeatInterval).start()
 	}
 
 	async close(): Promise<void> {
+		this.#heartbeat.stop()
+
 		await this.#streamDock.clearPanel().catch(() => null)
 
 		await this.#streamDock.close()
