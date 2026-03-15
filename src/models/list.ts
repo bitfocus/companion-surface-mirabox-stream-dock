@@ -1,5 +1,6 @@
-import type { SurfaceModuleManifestUsbIds } from '@companion-surface/base'
+import type { SomeCompanionInputField, SurfaceModuleManifestUsbIds } from '@companion-surface/base'
 import { Mirabox283V3Definition } from './293V3.js'
+import { MiraboxXLDefinition } from './Mirabox-XL.js'
 import { N4_1245Definition } from './N4-1245.js'
 import { N4_1234Definition } from './N4-1234.js'
 import { N3_293N3Definition } from './N3-293N3.js'
@@ -20,6 +21,12 @@ export interface StreamDockModelDefinition {
 
 	inputs: StreamDockInputDefinition[]
 	outputs: StreamDockOutputDefinition[]
+
+	/** If set, the default 4x3 map starting top left will be overridden */
+	pincodePositions?: PincodePositionDefinition
+
+	/** If set, additional configuration options will be available */
+	configFields?: Array<SomeCompanionInputField>
 }
 export interface StreamDockInputDefinition {
 	type: 'button' | 'push' | 'rotateLeft' | 'rotateRight' | 'swipeLeft' | 'swipeRight'
@@ -28,7 +35,9 @@ export interface StreamDockInputDefinition {
 	column: number
 	name: string
 }
-export interface StreamDockOutputDefinition {
+export type StreamDockOutputDefinition = StreamdockOutputLcdDefinition | StreamdockOutputLedDefinition
+
+export type StreamdockOutputLcdDefinition = {
 	type: 'lcd'
 	id: number
 	row: number
@@ -38,8 +47,32 @@ export interface StreamDockOutputDefinition {
 	resolutiony: number
 }
 
+export type StreamdockOutputLedDefinition = {
+	type: 'led'
+	id: number
+	row: number
+	column: number
+	name: string
+}
+
+export type NumberPair = [number, number]
+export interface PincodePositionDefinition {
+	pincode?: NumberPair
+	0?: NumberPair
+	1?: NumberPair
+	2?: NumberPair
+	3?: NumberPair
+	4?: NumberPair
+	5?: NumberPair
+	6?: NumberPair
+	7?: NumberPair
+	8?: NumberPair
+	9?: NumberPair
+}
+
 export const AllModels: StreamDockModelDefinition[] = [
 	Mirabox283V3Definition,
+	MiraboxXLDefinition,
 	N4_1234Definition,
 	N4_1245Definition,
 	N3_293N3Definition,

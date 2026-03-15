@@ -22,6 +22,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 	private readonly info: HIDDevice
 	private readonly device: HIDAsync
 	private readonly model: StreamDockModelDefinition
+	private heartbeatInterval: NodeJS.Timeout | undefined
 
 	get packetSize(): number {
 		return this.model.packetSize ?? 1024
@@ -40,7 +41,11 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		})
 
 		this.device.on('data', (data) => {
-			// console.log(`received data ${Array.from(data).slice(0,16).map(d => (d as number).toString(16))}`)
+			// console.log(
+			// 	`received data ${Array.from(data)
+			// 		.slice(0, 16)
+			// 		.map((d) => (d as number).toString(16))}`,
+			// )
 			if (data.length >= 11) {
 				const functionRaw = data[9]
 				const parameterRaw = data[10]
@@ -72,6 +77,8 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 				}
 			}
 		})
+
+		this.heartbeatInterval = setInterval(() => void this.sendHeartbeat(), 8000)
 	}
 
 	private async sendCmdSimple(dataArr: Array<number>): Promise<void> {
@@ -188,10 +195,19 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		})
 	}
 
+	async setLedBrightness(value: number): Promise<void> {
+		const clamped = Math.max(Math.min(value, 100), 0)
+		const y = Math.pow(clamped / 100, 0.75)
+		const brightness = Math.round(y * 100)
+		await this.sendCmdSimple([0x4c, 0x42, 0x4c, 0x49, 0x47, brightness]).catch((e) => {
+			console.error('Sending LED brightness value to Stream Dock failed ' + e)
+		})
+	}
+
 	async setKeyImage(column: number, row: number, imageBuffer: Buffer): Promise<void> {
 		const output = this.outputs.find((output) => output.row === row && output.column === column)
 
-		if (!output) return
+		if (!output || output.type != 'lcd') return
 
 		// console.log('sending image', column, row, output.id)
 
@@ -254,6 +270,12 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		})
 	}
 
+	async setLedArray(values: number[]): Promise<void> {
+		await this.sendCmdSimple([0x53, 0x45, 0x54, 0x4c, 0x42, ...values]).catch((e) => {
+			console.error('Sending LED array values to Stream Dock failed ' + e)
+		})
+	}
+
 	async sendHeartbeat(): Promise<void> {
 		await this.sendCmdSimple([0x43, 0x4f, 0x4e, 0x4e, 0x45, 0x43, 0x54]).catch((e) => {
 			console.error('Sending heartbeat to Stream Dock failed ' + e)
@@ -261,6 +283,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 	}
 
 	async close(): Promise<void> {
+		if (this.heartbeatInterval) clearInterval(this.heartbeatInterval)
 		await this.sendCmdSimple([0x43, 0x4c, 0x45, 0, 0, 0x44, 0x43]).catch((e) => {
 			console.error('Sending close to Stream Dock failed ' + e)
 		})

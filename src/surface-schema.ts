@@ -17,12 +17,22 @@ export function createSurfaceSchema(model: StreamDockModelDefinition): SurfaceSc
 	for (const output of model.outputs) {
 		const controlId = getControlId(output)
 
-		const presetId = `btn_${output.resolutionx}x${output.resolutiony}`
+		let resolutionx: number, resolutiony: number
+		if (output.type === 'lcd') {
+			// use LCDs resolution if LCD, otherwise 48x48. Currently this affects only LEDs
+			resolutionx = output.resolutionx
+			resolutiony = output.resolutiony
+		} else {
+			resolutionx = 48
+			resolutiony = 48
+		}
+
+		const presetId = `btn_${resolutionx}x${resolutiony}`
 		if (!surfaceLayout.stylePresets[presetId]) {
 			surfaceLayout.stylePresets[presetId] = {
 				bitmap: {
-					w: output.resolutionx,
-					h: output.resolutiony,
+					w: resolutionx,
+					h: resolutiony,
 					format: 'rgb',
 				},
 			}

@@ -6,9 +6,10 @@ import {
 	type SurfaceContext,
 	type SurfacePlugin,
 } from '@companion-surface/base'
-import { generatePincodeMap } from './pincode.js'
+import { generatePincodeMap as createPincodeMap } from './pincode.js'
 import { MiraboxWrapper } from './instance.js'
 import { createSurfaceSchema } from './surface-schema.js'
+import { createConfigFields } from './config.js'
 import { HIDAsync } from 'node-hid'
 import { AllModels, StreamDockModelDefinition } from './models/list.js'
 
@@ -22,6 +23,7 @@ const logger = createModuleLogger('Plugin')
 const MiraboxPlugin: SurfacePlugin<MiraboxPluginInfo> = {
 	init: async (): Promise<void> => {
 		// Nothing to do
+		console.log('initializing Mirabox Surface integration')
 	},
 	destroy: async (): Promise<void> => {
 		// Nothing to do
@@ -64,8 +66,8 @@ const MiraboxPlugin: SurfacePlugin<MiraboxPluginInfo> = {
 			registerProps: {
 				brightness: true,
 				surfaceLayout: createSurfaceSchema(pluginInfo.model),
-				pincodeMap: generatePincodeMap(pluginInfo.model),
-				configFields: null,
+				pincodeMap: createPincodeMap(pluginInfo.model),
+				configFields: createConfigFields(pluginInfo.model),
 				location: null,
 			},
 		}
