@@ -12,6 +12,11 @@ export const N4_1234Definition: StreamDockModelDefinition = {
 			vendorId: 0x6603,
 			productIds: [0x1007],
 		},
+		{
+			// AJAZZ AKP05
+			vendorId: 0x0300,
+			productIds: [0x3004],
+		},
 	],
 
 	inputs: [
