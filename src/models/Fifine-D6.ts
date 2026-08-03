@@ -7,7 +7,7 @@ export const Fifine_D6Definition: StreamDockModelDefinition = {
 	usbIds: [
 		{
 			vendorId: 0x3142,
-			productIds: [0x0007],
+			productIds: [0x0007, 0x0060],
 		},
 	],
 
