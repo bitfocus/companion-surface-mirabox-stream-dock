@@ -30,7 +30,7 @@
 		"node-hid": "^3.3.0"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.7.1",
+		"@companion-module/tools": "^2.8.0",
 		"@types/node": "^22.19.15",
 		"@types/semver": "^7.7.1",
 		"eslint": "^9.39.4",
