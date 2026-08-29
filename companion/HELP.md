@@ -35,7 +35,7 @@ There's a large rotary encoder, shown as Rotary 1 and two smaller encoders shown
 
 ![Stream Dock N3 mapping](images/mirabox-streamdock-n3.png?raw=true 'Stream Dock N3 mapping')
 
-### Mirabox Stream Dock N4
+### Mirabox Stream Dock N4, Ajazz AKP05E
 
 _5×2 LCD keys, 4 rotary encoders, LCD strip with touch buttons, integrated USB hub_
 
