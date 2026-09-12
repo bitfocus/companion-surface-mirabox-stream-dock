@@ -16,6 +16,7 @@ While developing the module, by using `yarn dev` the compiler will be run in wat
 
 - feat: add MAD DOG GK150K support
 - fix: serialize image transfers and batch display refreshes
+- fix: skip cancelled and unchanged image transfers
 - fix: use the correct USB manifest generator filename
 
 ### 1.2.0 (2026-03-15)

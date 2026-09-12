@@ -154,7 +154,7 @@ export class MiraboxWrapper implements SurfaceInstance {
 				try {
 					if (signal.aborted) return
 
-					await this.#streamDock.setKeyImage(output.column, output.row, Buffer.from(rotatedBitmap))
+					await this.#streamDock.setKeyImage(output.column, output.row, Buffer.from(rotatedBitmap), signal)
 					return
 				} catch (e) {
 					if (signal.aborted) return

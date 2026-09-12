@@ -25,6 +25,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 	private heartbeatInterval: NodeJS.Timeout | undefined
 	private imageWriteQueue: Promise<void> = Promise.resolve()
 	private refreshTimeout: NodeJS.Timeout | undefined
+	private readonly displayedImages = new Map<number, Buffer>()
 
 	get packetSize(): number {
 		return this.model.packetSize ?? 1024
@@ -187,6 +188,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		await this.sendCmdSimple([0x43, 0x4c, 0x45, 0, 0, 0, 0xff]).catch((e) => {
 			console.error('Sending clear panel to Stream Dock failed ' + e)
 		})
+		this.displayedImages.clear()
 	}
 
 	async refresh(): Promise<void> {
@@ -215,10 +217,11 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		})
 	}
 
-	async setKeyImage(column: number, row: number, imageBuffer: Buffer): Promise<void> {
+	async setKeyImage(column: number, row: number, imageBuffer: Buffer, signal?: AbortSignal): Promise<void> {
 		const output = this.outputs.find((output) => output.row === row && output.column === column)
 
 		if (!output || output.type != 'lcd') return
+		if (signal?.aborted || this.displayedImages.get(output.id)?.equals(imageBuffer)) return
 
 		// console.log('sending image', column, row, output.id)
 
@@ -254,10 +257,13 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 				`Streamdock image at position ${row}/${column} could not be compressed to 10KB or less, truncating to 10KB`,
 			)
 		}
+		if (signal?.aborted) return
 
 		// console.log(`image ${row}/${column} size ${size}B compression ${quality}%`)
 
 		await this.queueImageWrite(async () => {
+			if (signal?.aborted || this.displayedImages.get(output.id)?.equals(imageBuffer)) return
+
 			await this.sendCmdSimple([
 				0x42,
 				0x41,
@@ -269,6 +275,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 				output.id,
 			])
 			await this.sendDrawKeyCmd(imgData)
+			this.displayedImages.set(output.id, Buffer.from(imageBuffer))
 			this.scheduleRefresh()
 		})
 	}
