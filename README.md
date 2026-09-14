@@ -51,7 +51,7 @@ While developing the module, by using `yarn dev` the compiler will be run in wat
 
 ### 1.0.0 (2025-12-16)
 
-- major: initial release of this module based on the prior code from Companion including support for 239V3, N3 and N4
+- major: initial release of this module based on the prior code from Companion including support for 293V3, N3 and N4
 - feat: add alternative version of N3
 - feat: add M18V3
 - feat: add Ajazz AKP153
