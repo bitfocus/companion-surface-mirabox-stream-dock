@@ -11,6 +11,7 @@ import { M18V3Definition } from './M18V3.js'
 import { Ajaz_AKP153Definition } from './Ajazz-AKP153.js'
 import { Ajaz_AKP153EDefinition } from './Ajazz-AKP153E.js'
 import { Ajaz_AKP03EDefinition } from './Ajazz-AKP03E.js'
+import { MadDogGK150KDefinition } from './MadDog-GK150K.js'
 
 export interface StreamDockModelDefinition {
 	productName: string
@@ -71,6 +72,7 @@ export interface PincodePositionDefinition {
 }
 
 export const AllModels: StreamDockModelDefinition[] = [
+	MadDogGK150KDefinition,
 	Mirabox283V3Definition,
 	MiraboxXLDefinition,
 	N4_1234Definition,

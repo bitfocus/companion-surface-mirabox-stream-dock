@@ -23,6 +23,9 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 	private readonly device: HIDAsync
 	private readonly model: StreamDockModelDefinition
 	private heartbeatInterval: NodeJS.Timeout | undefined
+	private imageWriteQueue: Promise<void> = Promise.resolve()
+	private refreshTimeout: NodeJS.Timeout | undefined
+	private readonly displayedImages = new Map<number, Buffer>()
 
 	get packetSize(): number {
 		return this.model.packetSize ?? 1024
@@ -104,20 +107,29 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 	 * @param prefix optional prefix. If not set, the default prefix will be used
 	 */
 	private async sendDrawKeyCmd(data: Buffer): Promise<void> {
-		const ps: Promise<void>[] = []
-
 		for (let offset = 0; offset < data.byteLength; offset += this.packetSize) {
 			const chunk = data.subarray(offset, offset + this.packetSize)
 			const writebuffer = Buffer.concat([Buffer.from([0]), chunk], this.packetSize + 1)
 
-			ps.push(
-				this.writeRaw(writebuffer).catch((e) => {
-					throw new Error('Sending command to Stream Dock failed ' + e)
-				}),
-			)
+			await this.writeRaw(writebuffer).catch((e) => {
+				throw new Error('Sending command to Stream Dock failed ' + e)
+			})
 		}
+	}
 
-		await Promise.all(ps)
+	private async queueImageWrite(operation: () => Promise<void>): Promise<void> {
+		const result = this.imageWriteQueue.then(operation, operation)
+		this.imageWriteQueue = result.catch(() => undefined)
+		await result
+	}
+
+	private scheduleRefresh(): void {
+		if (this.refreshTimeout) clearTimeout(this.refreshTimeout)
+
+		this.refreshTimeout = setTimeout(() => {
+			this.refreshTimeout = undefined
+			void this.queueImageWrite(async () => this.refresh())
+		}, 50)
 	}
 
 	get serialNumber(): string {
@@ -176,6 +188,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		await this.sendCmdSimple([0x43, 0x4c, 0x45, 0, 0, 0, 0xff]).catch((e) => {
 			console.error('Sending clear panel to Stream Dock failed ' + e)
 		})
+		this.displayedImages.clear()
 	}
 
 	async refresh(): Promise<void> {
@@ -204,10 +217,11 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		})
 	}
 
-	async setKeyImage(column: number, row: number, imageBuffer: Buffer): Promise<void> {
+	async setKeyImage(column: number, row: number, imageBuffer: Buffer, signal?: AbortSignal): Promise<void> {
 		const output = this.outputs.find((output) => output.row === row && output.column === column)
 
 		if (!output || output.type != 'lcd') return
+		if (signal?.aborted || this.displayedImages.get(output.id)?.equals(imageBuffer)) return
 
 		// console.log('sending image', column, row, output.id)
 
@@ -243,25 +257,27 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 				`Streamdock image at position ${row}/${column} could not be compressed to 10KB or less, truncating to 10KB`,
 			)
 		}
+		if (signal?.aborted) return
 
 		// console.log(`image ${row}/${column} size ${size}B compression ${quality}%`)
 
-		this.sendCmdSimple([
-			0x42,
-			0x41,
-			0x54,
-			(size >> 24) & 0xff,
-			(size >> 16) & 0xff,
-			(size >> 8) & 0xff,
-			size & 0xff,
-			output.id,
-		]).catch((e) => {
-			console.error('Sending set image command to Stream Dock failed ' + e)
+		await this.queueImageWrite(async () => {
+			if (signal?.aborted || this.displayedImages.get(output.id)?.equals(imageBuffer)) return
+
+			await this.sendCmdSimple([
+				0x42,
+				0x41,
+				0x54,
+				(size >> 24) & 0xff,
+				(size >> 16) & 0xff,
+				(size >> 8) & 0xff,
+				size & 0xff,
+				output.id,
+			])
+			await this.sendDrawKeyCmd(imgData)
+			this.displayedImages.set(output.id, Buffer.from(imageBuffer))
+			this.scheduleRefresh()
 		})
-		this.sendDrawKeyCmd(imgData).catch((e) => {
-			console.error('Sending image data to Stream Dock failed ' + e)
-		})
-		await this.refresh()
 	}
 
 	async clearKeyImage(keyId: number): Promise<void> {
@@ -284,6 +300,8 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 
 	async close(): Promise<void> {
 		if (this.heartbeatInterval) clearInterval(this.heartbeatInterval)
+		if (this.refreshTimeout) clearTimeout(this.refreshTimeout)
+		await this.imageWriteQueue
 		await this.sendCmdSimple([0x43, 0x4c, 0x45, 0, 0, 0x44, 0x43]).catch((e) => {
 			console.error('Sending close to Stream Dock failed ' + e)
 		})
