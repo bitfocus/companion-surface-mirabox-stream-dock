@@ -123,5 +123,20 @@ export const MiraboxXLDefinition: StreamDockModelDefinition = {
 			],
 			default: 'color',
 		},
+		{
+			id: 'LEDbrightness',
+			type: 'number',
+			label: 'Side LEDs brightness',
+			default: 100,
+			min: 0,
+			max: 100,
+			step: 1,
+		},
+		{
+			id: 'linkLEDbrightness',
+			type: 'checkbox',
+			label: 'Link side LED brightness to display brightness',
+			default: false,
+		},
 	],
 }
