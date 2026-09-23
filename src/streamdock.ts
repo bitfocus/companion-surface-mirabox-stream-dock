@@ -1,7 +1,12 @@
 import type { HIDDevice } from '@companion-surface/base'
 import type { HIDAsync } from 'node-hid'
 import EventEmitter from 'node:events'
-import type { StreamDockInputDefinition, StreamDockModelDefinition, StreamDockOutputDefinition } from './models/list.js'
+import type {
+	StreamDockDeviceModeDefinition,
+	StreamDockInputDefinition,
+	StreamDockModelDefinition,
+	StreamDockOutputDefinition,
+} from './models/list.js'
 import jpg from '@julusian/jpeg-turbo'
 
 export interface StreamDockEvents {
@@ -10,6 +15,7 @@ export interface StreamDockEvents {
 	up: [action: StreamDockInputDefinition]
 	down: [action: StreamDockInputDefinition]
 	rotate: [action: StreamDockInputDefinition, direction: -1 | 1]
+	unknown: [code: number, parameter: number]
 }
 
 /**
@@ -54,7 +60,9 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 					return input.id === functionRaw
 				})
 
-				if (action) {
+				if (!action) {
+					this.emit('unknown', functionRaw, parameterRaw)
+				} else {
 					if (action.type === 'button') {
 						if (parameterRaw === 0x00) {
 							this.emit('up', action)
@@ -157,6 +165,10 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		return this.model.iconRotation
 	}
 
+	get deviceModes(): StreamDockDeviceModeDefinition | undefined {
+		return this.model.deviceModes
+	}
+
 	async writeRaw(data: Buffer): Promise<void> {
 		const written = await this.device.write(data).catch(() => {
 			throw new Error('Write to Stream Dock failed!')
@@ -164,6 +176,17 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		if (typeof written === 'number' && written !== data.length) {
 			throw new Error('Write to Stream Dock failed')
 		}
+	}
+
+	/**
+	 * Switch the operating mode of devices that have a standalone mode (e.g. Stream Dock N1).
+	 * Wire format (from the Mirabox transport library): `CRT\0\0MOD\0\0` followed by `'1' + mode`
+	 * N1 modes: 0 = keyboard/numpad, 1 = calculator, 2 = software (host controlled)
+	 */
+	async setDeviceMode(mode: number): Promise<void> {
+		await this.sendCmdSimple([0x4d, 0x4f, 0x44, 0, 0, 0x31 + mode]).catch((e) => {
+			console.error('Sending mode switch to Stream Dock failed ' + e)
+		})
 	}
 
 	async wakeScreen(): Promise<void> {
@@ -204,7 +227,12 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		})
 	}
 
-	async setKeyImage(column: number, row: number, imageBuffer: Buffer): Promise<void> {
+	async setKeyImage(
+		column: number,
+		row: number,
+		imageBuffer: Buffer,
+		pixelSize?: { width: number; height: number },
+	): Promise<void> {
 		const output = this.outputs.find((output) => output.row === row && output.column === column)
 
 		if (!output || output.type != 'lcd') return
@@ -219,8 +247,8 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 			// 90% quality will fit almost all images in the 10k limit
 			const options = {
 				format: jpg.FORMAT_RGB,
-				width: output.resolutionx,
-				height: output.resolutiony,
+				width: pixelSize?.width ?? output.resolutionx,
+				height: pixelSize?.height ?? output.resolutiony,
 				subsampling: jpg.SAMP_422,
 				quality,
 			}
