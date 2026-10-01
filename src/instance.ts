@@ -12,7 +12,7 @@ import { setTimeout } from 'node:timers/promises'
 import { findDominantColor, getControlId, hsvToRgb, translateRotation } from './util.js'
 import { StreamDock } from './streamdock.js'
 import type { HIDAsync } from 'node-hid'
-import type { StreamDockModelDefinition } from './models/list.js'
+import type { StreamDockInputDefinition, StreamDockModelDefinition } from './models/list.js'
 import * as imageRs from '@julusian/image-rs'
 
 export class MiraboxWrapper implements SurfaceInstance {
@@ -45,18 +45,38 @@ export class MiraboxWrapper implements SurfaceInstance {
 		this.#streamDock.on('error', (e) => context.disconnect(e as any))
 
 		this.#streamDock.on('down', (control) => {
+			if (this.#handlePageNav(control)) return
 			this.#context.keyDownById(getControlId(control))
 		})
 
 		this.#streamDock.on('up', (control) => {
+			if (this.#isPageNav(control)) return
 			this.#context.keyUpById(getControlId(control))
 		})
 
 		this.#streamDock.on('push', (control) => {
+			if (this.#handlePageNav(control)) return
 			this.#context.keyDownUpById(getControlId(control))
 		})
 
+		const reportedUnknown = new Set<number>()
+		this.#streamDock.on('unknown', (code, parameter) => {
+			// log each unknown code once, to help map new firmware without flooding the log
+			if (reportedUnknown.has(code)) return
+			reportedUnknown.add(code)
+			this.#logger.warn(
+				`Unknown input from ${this.#streamDock.productName}: code 0x${code.toString(16)}, value 0x${parameter.toString(16)}`,
+			)
+		})
+
 		this.#streamDock.on('rotate', (control, amount) => {
+			this.#logger.debug(`${control.name} rotation ${amount > 0 ? 'right' : 'left'} (0x${control.id.toString(16)})`)
+			if (control.pageNav && (this.config.knobMode ?? 'topButtons') === 'topButtons') {
+				// reuse the Companion buttons on the top row (e.g. Page up / Page down)
+				this.#context.keyDownUpById(amount > 0 ? '0/0' : '0/1')
+				return
+			}
+			if (this.#handlePageNav(control)) return
 			if (amount > 0) {
 				this.#context.rotateRightById(getControlId(control))
 			} else {
@@ -66,6 +86,12 @@ export class MiraboxWrapper implements SurfaceInstance {
 	}
 
 	async init(): Promise<void> {
+		const modes = this.#streamDock.deviceModes
+		if (modes) {
+			// Devices like the N1 ignore images and send no key events until switched to software mode
+			await this.#streamDock.setDeviceMode(modes.software)
+			await setTimeout(100)
+		}
 		await this.#streamDock.wakeScreen()
 		await this.#streamDock.clearPanel()
 		await this.#streamDock.setLedBrightness(0)
@@ -74,7 +100,51 @@ export class MiraboxWrapper implements SurfaceInstance {
 	async close(): Promise<void> {
 		await this.#streamDock.clearPanel().catch(() => null)
 
+		const modes = this.#streamDock.deviceModes
+		if (modes) {
+			const closeMode = this.#resolveCloseMode(modes.defaultOnClose)
+			if (closeMode !== modes.software) {
+				// hand the device back to its standalone function (numpad / calculator)
+				await this.#streamDock.setDeviceMode(closeMode).catch(() => null)
+			}
+		}
+
 		await this.#streamDock.close()
+	}
+
+	#isPageNav(control: StreamDockInputDefinition): boolean {
+		if (!control.pageNav) return false
+		if (control.type === 'button' || control.type === 'push') {
+			const mode = this.config.topButtonsMode ?? 'companion'
+			return mode === 'nav' || mode === 'navInverted'
+		}
+		return this.config.knobMode === 'nav'
+	}
+
+	/** Handles inputs flagged as page navigation. Returns true if the event was consumed */
+	#handlePageNav(control: StreamDockInputDefinition): boolean {
+		if (!this.#isPageNav(control)) return false
+		if (this.#context.isLocked) return true
+
+		let forward = control.pageNav === 'next'
+		// inversion applies to the top buttons only, the knob keeps its natural direction
+		if (this.config.topButtonsMode === 'navInverted' && control.type === 'button') forward = !forward
+
+		this.#context.changePage(forward)
+		return true
+	}
+
+	#resolveCloseMode(fallback: number): number {
+		switch (this.config.n1ModeOnClose) {
+			case 'keyboard':
+				return 0
+			case 'calculator':
+				return 1
+			case 'software':
+				return 2
+			default:
+				return fallback
+		}
 	}
 
 	updateCapabilities(_capabilities: HostCapabilities): void {
@@ -149,12 +219,30 @@ export class MiraboxWrapper implements SurfaceInstance {
 				rotatedBitmap = computedImage.buffer
 			}
 
+			// Some outputs (N1 strip) have an uncertain native size: rescale to the configured one
+			let targetSize: { width: number; height: number } | undefined
+			if (output.nativeSizeConfig) {
+				const native = Number(this.config[output.nativeSizeConfig])
+				if (native > 0 && (native !== output.resolutionx || native !== output.resolutiony)) {
+					const scaled = await imageRs.ImageTransformer.fromBuffer(
+						Buffer.from(rotatedBitmap),
+						output.resolutionx,
+						output.resolutiony,
+						'rgb',
+					)
+						.scale(native, native, 'Exact')
+						.toBuffer('rgb')
+					rotatedBitmap = scaled.buffer
+					targetSize = { width: native, height: native }
+				}
+			}
+
 			const maxAttempts = 3
 			for (let attempts = 1; attempts <= maxAttempts; attempts++) {
 				try {
 					if (signal.aborted) return
 
-					await this.#streamDock.setKeyImage(output.column, output.row, Buffer.from(rotatedBitmap))
+					await this.#streamDock.setKeyImage(output.column, output.row, Buffer.from(rotatedBitmap), targetSize)
 					return
 				} catch (e) {
 					if (signal.aborted) return

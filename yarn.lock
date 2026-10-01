@@ -48,12 +48,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@companion-surface/base@npm:~1.1.0":
-  version: 1.1.0
-  resolution: "@companion-surface/base@npm:1.1.0"
+"@companion-surface/base@npm:~1.2.1":
+  version: 1.2.1
+  resolution: "@companion-surface/base@npm:1.2.1"
   dependencies:
     tslib: "npm:^2.8.1"
-  checksum: 10c0/611d96c2417f938f2e3052b9193a82d47f1f5dd3468c89fee1443533e1bb93edb779740327d5dcf46ab30ac325017a97f9321253abf3a8f92cfed074116b915b
+  checksum: 10c0/1ca9a9c72fd4a714455812a7a337777b7c7967ca13eeb0b71f5a95e4e1df70361b73c278c52b16da808ded5b8889d17660ace7b27fd87a61e2a14d5e0a1305d9
   languageName: node
   linkType: hard
 
@@ -1249,7 +1249,7 @@ __metadata:
   resolution: "companion-surface-mirabox-stream-dock@workspace:."
   dependencies:
     "@companion-module/tools": "npm:^2.8.0"
-    "@companion-surface/base": "npm:~1.1.0"
+    "@companion-surface/base": "npm:~1.2.1"
     "@julusian/image-rs": "npm:^2.1.1"
     "@julusian/jpeg-turbo": "npm:^3.0.1"
     "@types/node": "npm:^22.19.15"

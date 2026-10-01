@@ -13,6 +13,27 @@ _5×3 LCD keys_
 
 The layout is straightforward: all keys map directly to the Companion grid.
 
+### Mirabox / VSDinside Stream Dock N1
+
+_15 LCD keys (3×5), 3-segment top strip, 2 top buttons, 1 rotary encoder_
+
+The N1 starts as a standalone numpad/calculator. When Companion opens it, the module switches it to _software mode_ automatically; when Companion releases it (disable, unplug, quit) the device is returned to the mode chosen in the surface settings (**Keyboard / numpad** by default, or **Calculator**, or it can stay blank in software mode).
+
+Layout on the Companion grid (3 columns × 6 rows):
+
+| Row | Column 0             | Column 1             | Column 2             |
+| --- | -------------------- | -------------------- | -------------------- |
+| 0   | Top button 1         | Top button 2         | Rotary encoder       |
+| 1–5 | Keys 1, 4, 7, 10, 13 | Keys 2, 5, 8, 11, 14 | Keys 3, 6, 9, 12, 15 |
+
+**Top buttons** (surface setting): by default they run the Companion buttons at row 0, columns 0 and 1, whose images are shown on the strip (e.g. put Companion's _Page up_ / _Page down_ buttons there). Alternatively they can do a fixed page up / page down, optionally inverted.
+
+**Knob rotation** (surface setting): by default turning right presses top button 1 and turning left presses top button 2, so with _Page up_ / _Page down_ on the top row the knob scrolls pages. Alternatively it can change page directly (this also requires enabling the page-change option _Knob rotation changes page_ in the Companion surface settings), or run the rotate actions of the Companion button at row 0, column 2. Unrecognized knob codes are written to the Companion log.
+
+The knob press is always a regular Companion control (row 0, column 2).
+
+The images of the row 0 buttons are shown on the three segments of the top strip. If they look cropped, tiny or garbled, change **Top strip image size** in the surface settings (64 × 64 or 80 × 80).
+
 ### Mirabox Stream Dock XL
 
 _8x4 LCD keys, rocker switches on left and right side, LED strips_

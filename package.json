@@ -1,6 +1,6 @@
 {
 	"name": "companion-surface-mirabox-stream-dock",
-	"version": "1.2.0",
+	"version": "1.5.3",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
@@ -24,7 +24,7 @@
 		"yarn": "^4"
 	},
 	"dependencies": {
-		"@companion-surface/base": "~1.1.0",
+		"@companion-surface/base": "~1.2.1",
 		"@julusian/image-rs": "^2.1.1",
 		"@julusian/jpeg-turbo": "^3.0.1",
 		"node-hid": "^3.3.0"

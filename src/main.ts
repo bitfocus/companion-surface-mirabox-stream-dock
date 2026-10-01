@@ -30,13 +30,25 @@ const MiraboxPlugin: SurfacePlugin<MiraboxPluginInfo> = {
 	},
 
 	checkSupportsHidDevice: (device: HIDDevice): DiscoveredSurfaceInfo<MiraboxPluginInfo> | null => {
-		if (device.interface !== 0) return null
-
 		// Match the device against known models
 		const model = AllModels.find((model) =>
 			model.usbIds.some((usbId) => usbId.vendorId === device.vendorId && usbId.productIds.includes(device.productId)),
 		)
 		if (!model) return null
+
+		if (model.hidMatch === 'vendorUsagePage') {
+			// Composite devices (e.g. N1: keyboard + vendor HID). The control interface is the vendor-defined
+			// collection (usagePage > 0x0401, usage 1), same rule as the official Mirabox SDK.
+			const isVendorCollection = (device.usagePage ?? 0) > 0x0401 && device.usage === 1
+			if (!isVendorCollection) {
+				logger.debug(
+					`Skipping ${model.productName} HID collection: interface ${device.interface}, usagePage 0x${(device.usagePage ?? 0).toString(16)}, usage ${device.usage}`,
+				)
+				return null
+			}
+		} else if (device.interface !== 0) {
+			return null
+		}
 
 		logger.debug(`Checked HID device: ${model.productName}`)
 
@@ -69,6 +81,7 @@ const MiraboxPlugin: SurfacePlugin<MiraboxPluginInfo> = {
 				pincodeMap: createPincodeMap(pluginInfo.model),
 				configFields: createConfigFields(pluginInfo.model),
 				location: null,
+				canChangePage: pluginInfo.model.changePageLabel ? { label: pluginInfo.model.changePageLabel } : undefined,
 			},
 		}
 	},
