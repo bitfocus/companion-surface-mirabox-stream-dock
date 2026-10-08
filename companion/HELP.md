@@ -25,7 +25,7 @@ You can only push one button at a time. When you push a second button, sometimes
 
 ![Stream Dock XL mapping](images/mirabox-streamdock-xl.png?raw=true 'Stream Dock XL mapping')
 
-### Mirabox Stream Dock N3, Ajazz AKP03E
+### Mirabox Stream Dock N3, Ajazz AKP03E, soomfon CN002
 
 _3x2 LCD keys, 3 buttons, 3 rotary encoders_
 
