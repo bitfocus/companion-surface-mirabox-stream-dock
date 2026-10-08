@@ -55,7 +55,7 @@ _5x3 LCD keys, 3 buttons, 2 LEDs_
 
 Currently the LCD keys and the regular buttons are supported.
 
-### Mirabox Stream Dock HSV293S, Ajazz AKP153, Ajazz AKP153E
+### Mirabox Stream Dock HSV293S, Ajazz AKP153, Ajazz AKP153E, MAD DOG GK150K
 
 _5x3 LCD keys, vertical LCD sidescreen_
 

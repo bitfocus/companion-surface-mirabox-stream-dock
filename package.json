@@ -9,7 +9,7 @@
 		"package": "run build && companion-surface-build",
 		"build": "rimraf dist && run build:main && run build:manifest-usb-ids",
 		"build:main": "tsc -p tsconfig.build.json",
-		"build:manifest-usb-ids": "tsx ./tools/update-usb-ids.mjs",
+		"build:manifest-usb-ids": "tsx ./tools/update-usb-ids.mts",
 		"dev": "tsc -p tsconfig.build.json --watch",
 		"lint:raw": "eslint",
 		"lint": "run lint:raw ."
