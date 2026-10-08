@@ -22,7 +22,7 @@ export class MiraboxWrapper implements SurfaceInstance {
 	readonly #surfaceId: string
 	readonly #context: SurfaceContext
 	private config: Record<string, any> = {}
-
+	private brightness = 100
 	public get surfaceId(): string {
 		return this.#surfaceId
 	}
@@ -83,9 +83,10 @@ export class MiraboxWrapper implements SurfaceInstance {
 
 	async updateConfig(config: Record<string, any>): Promise<void> {
 		this.config = { ...this.config, ...config }
-		console.log('updateConfig called', JSON.stringify(this.config, null, 2))
+		const ledBrightness = this.config.linkLEDbrightness ? this.brightness : (this.config.LEDbrightness ?? 100)
+
 		if (this.config.LEDmode === 'animation') {
-			await this.#streamDock.setLedArray([0, 0, 0])
+			await Promise.all([this.#streamDock.setLedArray([0, 0, 0]), this.#streamDock.setLedBrightness(ledBrightness)])
 		} else if (this.config.LEDmode === 'off') {
 			await Promise.all([this.#streamDock.setLedArray([0, 0, 1]), this.#streamDock.setLedBrightness(0)])
 		} else if (this.config.LEDmode === 'color') {
@@ -95,17 +96,22 @@ export class MiraboxWrapper implements SurfaceInstance {
 			} else {
 				lastCol = [10, 10, 10]
 			}
-			await Promise.all([
-				this.#streamDock.setLedArray(lastCol),
-				this.#streamDock.setLedBrightness(this.config.brightness ?? 100),
-			])
+			await Promise.all([this.#streamDock.setLedArray(lastCol), this.#streamDock.setLedBrightness(ledBrightness)])
 		}
 	}
 
 	async ready(): Promise<void> {}
 
 	async setBrightness(percent: number): Promise<void> {
-		if (this.#streamDock.outputs.find((op) => op.type === 'led')) {
+		this.brightness = percent
+
+		if (this.#streamDock.productName === 'Stream Dock XL') {
+			if (this.config.linkLEDbrightness) {
+				await Promise.all([this.#streamDock.setBrightness(percent), this.#streamDock.setLedBrightness(percent)])
+			} else {
+				await this.#streamDock.setBrightness(percent)
+			}
+		} else if (this.#streamDock.outputs.find((op) => op.type === 'led')) {
 			await Promise.all([this.#streamDock.setBrightness(percent), this.#streamDock.setLedBrightness(percent)])
 		} else {
 			await this.#streamDock.setBrightness(percent)
@@ -183,9 +189,11 @@ export class MiraboxWrapper implements SurfaceInstance {
 			}
 
 			if (v > 0) {
+				const ledBrightness = this.config.linkLEDbrightness ? this.brightness : (this.config.LEDbrightness ?? 100)
+
 				await Promise.all([
 					this.#streamDock.setLedArray(hsvToRgb(h, s, v)),
-					this.#streamDock.setLedBrightness(this.config.brightness),
+					this.#streamDock.setLedBrightness(ledBrightness),
 				])
 			} else {
 				if (this.#streamDock.productName === 'Stream Dock XL') {
