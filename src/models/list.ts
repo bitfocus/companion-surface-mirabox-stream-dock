@@ -11,6 +11,7 @@ import { M18V3Definition } from './M18V3.js'
 import { Ajaz_AKP153Definition } from './Ajazz-AKP153.js'
 import { Ajaz_AKP153EDefinition } from './Ajazz-AKP153E.js'
 import { Ajaz_AKP03EDefinition } from './Ajazz-AKP03E.js'
+import { N1Definition } from './N1.js'
 
 export interface StreamDockModelDefinition {
 	productName: string
@@ -27,6 +28,30 @@ export interface StreamDockModelDefinition {
 
 	/** If set, additional configuration options will be available */
 	configFields?: Array<SomeCompanionInputField>
+
+	/**
+	 * Some devices (e.g. Stream Dock N1) boot in a standalone mode (keyboard / numpad / calculator)
+	 * and must be switched into "software" mode with the MOD command before they report key events
+	 * and accept key images. If set, the module switches mode on open and restores a standalone
+	 * mode on close.
+	 */
+	deviceModes?: StreamDockDeviceModeDefinition
+
+	/**
+	 * How to pick the right HID collection. Default: USB interface 0.
+	 * 'vendorUsagePage': pick the vendor-defined collection (usagePage > 0x0401, usage 1) on any interface
+	 */
+	hidMatch?: 'interface0' | 'vendorUsagePage'
+
+	/** If set, the surface registers the Companion page-change capability with this user-facing label */
+	changePageLabel?: string
+}
+
+export interface StreamDockDeviceModeDefinition {
+	/** Mode value sent when Companion takes control of the device */
+	software: number
+	/** Mode value restored when Companion releases the device, unless overridden by config */
+	defaultOnClose: number
 }
 export interface StreamDockInputDefinition {
 	type: 'button' | 'push' | 'rotateLeft' | 'rotateRight' | 'swipeLeft' | 'swipeRight'
@@ -34,6 +59,11 @@ export interface StreamDockInputDefinition {
 	row: number
 	column: number
 	name: string
+	/**
+	 * If set, this input changes the surface page directly (unless the surface config `pageNavMode` is 'buttons').
+	 * For buttons the page changes on press; for encoders on each rotation step.
+	 */
+	pageNav?: 'next' | 'previous'
 }
 export type StreamDockOutputDefinition = StreamdockOutputLcdDefinition | StreamdockOutputLedDefinition
 
@@ -45,6 +75,11 @@ export type StreamdockOutputLcdDefinition = {
 	name: string
 	resolutionx: number
 	resolutiony: number
+	/**
+	 * If set, the name of a surface config field holding the native (square) pixel size the device expects.
+	 * Companion still renders at resolutionx/y; the module rescales before encoding.
+	 */
+	nativeSizeConfig?: string
 }
 
 export type StreamdockOutputLedDefinition = {
@@ -83,4 +118,5 @@ export const AllModels: StreamDockModelDefinition[] = [
 	Ajaz_AKP153Definition,
 	Ajaz_AKP153EDefinition,
 	Ajaz_AKP03EDefinition,
+	N1Definition,
 ]
