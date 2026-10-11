@@ -7,7 +7,7 @@ export const Mirabox_N4_ProDefinition: StreamDockModelDefinition = {
 	usbIds: [
 		{
 			vendorId: 0x5548,
-			productIds: [0x1008],
+			productIds: [0x1021],
 		},
 	],
 }
