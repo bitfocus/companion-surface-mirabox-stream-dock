@@ -7,7 +7,7 @@ To use a Stream Dock with Companion, the Mirabox creator software must not be ru
 Some Stream Dock models do not provide separate press and release events for all controls — this is a hardware limitation.  
 Some Stream Dock models do not provide n-key rollover, that means you can only press one key at a time. Even worse when you press a second or third key while holding the first one down, the first key may be temporarily unpressed or or just nothing happens. This is a hardware limitation.
 
-### Mirabox Stream Dock 293V3
+### Mirabox Stream Dock 293V3, Fifine Ampligame D6
 
 _5×3 LCD keys_
 
