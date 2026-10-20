@@ -8,10 +8,15 @@ import { HSV_293SDefinition } from './HSV-293S.js'
 import { HSV_293S_3Definition } from './HSV-293S-3.js'
 import { HSV_293S_2Definition } from './HSV-293S-2.js'
 import { M18V3Definition } from './M18V3.js'
+import { VSDinsideM18Definition } from './VSDinside-M18.js'
 import { Ajaz_AKP153Definition } from './Ajazz-AKP153.js'
 import { Ajaz_AKP153EDefinition } from './Ajazz-AKP153E.js'
 import { Ajaz_AKP03EDefinition } from './Ajazz-AKP03E.js'
 import { Mirabox_N4_ProDefinition } from './Mirabox-N4-Pro.js'
+import { StreonorS15Definition } from './Streonor-S15.js'
+import { N1_Definition } from './N1.js'					  
+import { Ajaz_AKP05EDefinition } from './Ajazz-AKP05E.js'
+import { soomfon_CN002Definition } from './soomfon-CN002.js'
 
 export interface StreamDockModelDefinition {
 	productName: string
@@ -81,8 +86,13 @@ export const AllModels: StreamDockModelDefinition[] = [
 	HSV_293S_2Definition,
 	HSV_293S_3Definition,
 	M18V3Definition,
+	VSDinsideM18Definition,
 	Ajaz_AKP153Definition,
 	Ajaz_AKP153EDefinition,
 	Ajaz_AKP03EDefinition,
 	Mirabox_N4_ProDefinition,
+	StreonorS15Definition,
+	N1_Definition,
+	Ajaz_AKP05EDefinition,
+	soomfon_CN002Definition,
 ]
