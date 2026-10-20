@@ -12,6 +12,16 @@ While developing the module, by using `yarn dev` the compiler will be run in wat
 
 ## Version History
 
+### 1.3.0 (2026-10-20)
+
+- feat: Add soomfon CN002
+- feat: Add Ajazz AKP05E
+- feat: add N1
+- feat: Add VSDinside Stream Dock M18
+- feat: add Streonor S15
+- feat: add Mirabox Stream Dock N4 Pro
+- fix: Stream Dock XL side LED brightness
+
 ### 1.2.0 (2026-03-15)
 
 - feat: add XL
@@ -19,12 +29,6 @@ While developing the module, by using `yarn dev` the compiler will be run in wat
 - feat: add possibility of LED outputs
 - feat: add heartbeat to all models to prevent reboot
 - fix: rework help file
-- chore: update dependency eslint to 9.39.4
-- chore: update dependency lint-staged to 16.3.3
-- chore: update dependency rimraf to 6.1.3
-- chore: update dependency types/node to 22.19.15
-- chore: update dependency companion-module/tools to 2.7.1
-- chore: update dependency typescript-eslint to 8.57.0
 
 ### 1.1.0 (2026-02-07)
 
@@ -32,13 +36,6 @@ While developing the module, by using `yarn dev` the compiler will be run in wat
 - feat: add AJAZZ AKP153E
 - fix: async jpeg encoding
 - fix: simplify packet chunking
-- chore: update dependency jpeg-turbo to 3.0.1
-- chore: update dependency node-hid to 3.3.0
-- chore: update dependency node-gyp to 12.2.0
-- chore: update dependency companion-surface/base to 1.1.0
-- chore: update dependency companion-module/tools to 2.6.1
-- chore: update dependency prettier to 3.8.1
-- chore: update dependency typescript-eslint to 8.54.0
 
 ### 1.0.2 (2026-01-04)
 
