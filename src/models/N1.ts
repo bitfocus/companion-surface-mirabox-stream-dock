@@ -3,6 +3,19 @@ import type { StreamDockModelDefinition } from './list.js'
 export const N1_Definition: StreamDockModelDefinition = {
 	productName: 'Stream Dock N1',
 	iconRotation: 270,
+	pincodePositions: {
+		pincode: [0, 0],
+		7: [0, 1],
+		8: [1, 1],
+		9: [2, 1],
+		4: [0, 2],
+		5: [1, 2],
+		6: [2, 2],
+		1: [0, 3],
+		2: [1, 3],
+		3: [2, 3],
+		0: [1, 4],
+	},
 	usbIds: [
 		{
 			vendorId: 0x6603,
