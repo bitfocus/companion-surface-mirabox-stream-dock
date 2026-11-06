@@ -22,7 +22,11 @@ export class MiraboxWrapper implements SurfaceInstance {
 	readonly #surfaceId: string
 	readonly #context: SurfaceContext
 	private config: Record<string, any> = {}
+	readonly #ledValues: number[]
 	private brightness = 100
+	get #ledsOff(): boolean {
+		return this.#ledValues.length > 3 && this.#ledValues.every((x) => x === 0)
+	}
 	public get surfaceId(): string {
 		return this.#surfaceId
 	}
@@ -41,6 +45,7 @@ export class MiraboxWrapper implements SurfaceInstance {
 		this.#streamDock = new StreamDock(deviceInfo, device, model)
 		this.#surfaceId = surfaceId
 		this.#context = context
+		this.#ledValues = new Array<number>(this.#streamDock.ledArrayLength).fill(0)
 
 		this.#streamDock.on('error', (e) => context.disconnect(e as any))
 
@@ -104,12 +109,19 @@ export class MiraboxWrapper implements SurfaceInstance {
 	async setBrightness(percent: number): Promise<void> {
 		this.brightness = percent
 		if (this.#streamDock.outputs.find((op) => op.type === 'led')) {
-			await Promise.all([this.#streamDock.setBrightness(percent), this.#streamDock.setLedBrightness(percent)])
+			await Promise.all([
+				this.#streamDock.setBrightness(percent),
+				this.#streamDock.setLedBrightness(this.#ledsOff ? 0 : percent),
+			])
 		} else {
 			await this.#streamDock.setBrightness(percent)
 		}
 	}
 	async blank(): Promise<void> {
+		if (this.#ledValues.length > 3) {
+			this.#ledValues.fill(0)
+			await this.#streamDock.setLedBrightness(0)
+		}
 		await this.#streamDock.clearPanel()
 	}
 	async draw(signal: AbortSignal, drawProps: SurfaceDrawProps): Promise<void> {
@@ -180,7 +192,17 @@ export class MiraboxWrapper implements SurfaceInstance {
 				}
 			}
 
-			if (v > 0) {
+			if (this.#ledValues.length > 3) {
+				this.#ledValues.splice(output.id * 3, 3, ...(v > 0 ? hsvToRgb(h, s, v) : [0, 0, 0]))
+				if (this.#ledsOff) {
+					await this.#streamDock.setLedBrightness(0)
+				} else {
+					await Promise.all([
+						this.#streamDock.setLedArray(this.#ledValues),
+						this.#streamDock.setLedBrightness(this.brightness),
+					])
+				}
+			} else if (v > 0) {
 				await Promise.all([
 					this.#streamDock.setLedArray(hsvToRgb(h, s, v)),
 					this.#streamDock.setLedBrightness(this.brightness),

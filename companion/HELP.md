@@ -47,6 +47,8 @@ To use the rotary encoders for a specific button, enable the `Enable Rotary Acti
 
 The LCD strip also supports a swipe gesture. Swipe events are mapped to the rotary actions of the fifth button in the third row.
 
+The N4 Pro has an RGB LED above each rotary encoder. Each LED follows the dominant color of its rotary encoder button in the fourth row, and its brightness follows the surface brightness.
+
 ![Stream Dock N4 mapping](images/mirabox-streamdock.png?raw=true 'Stream Dock N4 mapping')
 
 ### Mirabox Stream Dock M18V3

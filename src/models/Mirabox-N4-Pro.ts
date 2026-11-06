@@ -10,4 +10,12 @@ export const Mirabox_N4_ProDefinition: StreamDockModelDefinition = {
 			productIds: [0x1021],
 		},
 	],
+	ledArrayLength: 12,
+	outputs: [
+		...N4_1234Definition.outputs,
+		{ type: 'led', id: 0, row: 3, column: 0, name: 'Rotary encoder LED 1' },
+		{ type: 'led', id: 1, row: 3, column: 1, name: 'Rotary encoder LED 2' },
+		{ type: 'led', id: 2, row: 3, column: 2, name: 'Rotary encoder LED 3' },
+		{ type: 'led', id: 3, row: 3, column: 3, name: 'Rotary encoder LED 4' },
+	],
 }

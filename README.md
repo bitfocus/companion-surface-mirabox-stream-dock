@@ -12,6 +12,10 @@ While developing the module, by using `yarn dev` the compiler will be run in wat
 
 ## Version History
 
+### Unreleased
+
+- feat: Mirabox Stream Dock N4 Pro rotary encoder RGB LEDs
+
 ### 1.3.0 (2026-10-20)
 
 - feat: Add soomfon CN002

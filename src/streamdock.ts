@@ -157,6 +157,10 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		return this.model.iconRotation
 	}
 
+	get ledArrayLength(): number {
+		return this.model.ledArrayLength ?? 3
+	}
+
 	async writeRaw(data: Buffer): Promise<void> {
 		const written = await this.device.write(data).catch(() => {
 			throw new Error('Write to Stream Dock failed!')

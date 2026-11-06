@@ -24,6 +24,7 @@ export interface StreamDockModelDefinition {
 	iconRotation: number
 	/** If set, the packet size will be overridden */
 	packetSize?: number
+	ledArrayLength?: number
 
 	inputs: StreamDockInputDefinition[]
 	outputs: StreamDockOutputDefinition[]
