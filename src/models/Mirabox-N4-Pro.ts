@@ -7,7 +7,8 @@ export const Mirabox_N4_ProDefinition: StreamDockModelDefinition = {
 	usbIds: [
 		{
 			vendorId: 0x5548,
-			productIds: [0x1021],
+			// 0x1008: China-market N4 Pro (firmware "V4.N4 Pro.02.010"), seen 2026-11-07
+			productIds: [0x1021, 0x1008],
 		},
 	],
 }
