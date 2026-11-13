@@ -3,7 +3,7 @@ import type { StreamDockModelDefinition } from './list.js'
 // chipset (reports as "HOTSPOTEKUSB HID DEMO").
 // mapping below is carried over from Mirabox-XL.
 // Tested on real hardware.
-export const VSDXLDefinition: StreamDockModelDefinition = {
+export const VSDinsideXLDefinition: StreamDockModelDefinition = {
 	productName: 'Stream Dock XL',
 	iconRotation: 180,
 	usbIds: [
