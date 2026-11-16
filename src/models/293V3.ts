@@ -6,7 +6,7 @@ export const Mirabox283V3Definition: StreamDockModelDefinition = {
 	usbIds: [
 		{
 			vendorId: 0x6603,
-			productIds: [0x1005, 0x1006],
+			productIds: [0x1005, 0x1006, 0x1010],
 		},
 	],
 

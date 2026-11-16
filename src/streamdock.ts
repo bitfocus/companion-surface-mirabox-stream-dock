@@ -10,6 +10,7 @@ export interface StreamDockEvents {
 	up: [action: StreamDockInputDefinition]
 	down: [action: StreamDockInputDefinition]
 	rotate: [action: StreamDockInputDefinition, direction: -1 | 1]
+	mode: [mode: number]
 }
 
 /**
@@ -23,17 +24,26 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 	private readonly device: HIDAsync
 	private readonly model: StreamDockModelDefinition
 	private heartbeatInterval: NodeJS.Timeout | undefined
+	private activeTouchSoftKey: StreamDockInputDefinition | undefined
+	private usesTouchReports = false
+	private touchStartX: number | undefined
+	private imageTransferQueue: Promise<void> = Promise.resolve()
 
 	get packetSize(): number {
 		return this.model.packetSize ?? 1024
 	}
 
-	constructor(deviceInfo: HIDDevice, device: HIDAsync, model: StreamDockModelDefinition) {
+	constructor(deviceInfo: HIDDevice, device: HIDAsync, model: StreamDockModelDefinition, firmwareRevision?: number) {
 		super()
 
 		this.info = deviceInfo
 		this.device = device
 		this.model = model
+		const hasKnobRelease =
+			model.knobReleaseMinFirmware !== undefined &&
+			firmwareRevision !== undefined &&
+			firmwareRevision >= model.knobReleaseMinFirmware
+		const touch = model.touchSoftKeys
 
 		this.device.on('error', (error) => {
 			console.error(`Stream Dock Error: ${error}`)
@@ -46,21 +56,55 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 			// 		.slice(0, 16)
 			// 		.map((d) => (d as number).toString(16))}`,
 			// )
-			if (data.length >= 11) {
-				const functionRaw = data[9]
-				const parameterRaw = data[10]
+			const hasReportId =
+				(touch && data[0] === 0x00) ||
+				(data.length >= 4 && data[0] !== 0x41 && data[1] === 0x41 && data[2] === 0x43 && data[3] === 0x4b)
+			const packet = hasReportId ? data.subarray(1) : data
+			if (touch) {
+				if (packet[0] === 0x54 && packet[1] === 0x50) {
+					this.handleTouchReport(packet, touch.inputIds, touch.reportRegionWidth)
+					return
+				}
+				// N4 Pro also reports control replies on this endpoint.
+				if (
+					packet[0] !== 0x41 ||
+					packet[1] !== 0x43 ||
+					packet[2] !== 0x4b ||
+					packet[5] !== 0x4f ||
+					packet[6] !== 0x4b
+				) {
+					return
+				}
+			}
+			if (packet.length >= 11) {
+				const functionRaw = packet[9]
+				const parameterRaw = packet[10]
+				const action = this.model.inputs.find((input) => input.id === functionRaw)
+				if (touch) {
+					if (this.usesTouchReports) {
+						if (touch.inputIds.includes(functionRaw) || action?.type === 'swipeLeft' || action?.type === 'swipeRight') {
+							return
+						}
+					} else if (action?.type !== 'knobPress' && this.handleLegacyTouchSoftKey(packet)) {
+						return
+					}
+				}
 
-				const action = this.model.inputs.find((input) => {
-					return input.id === functionRaw
-				})
+				if (this.model.modeReport === functionRaw && parameterRaw === (this.model.modeReportValue ?? 0x00)) {
+					this.emit('mode', functionRaw)
+					return
+				}
 
 				if (action) {
 					if (action.type === 'button') {
-						if (parameterRaw === 0x00) {
+						if (parameterRaw === 0x00 || this.model.buttonReleaseValues?.includes(parameterRaw)) {
 							this.emit('up', action)
 						} else {
 							this.emit('down', action)
 						}
+					} else if (action.type === 'knobPress') {
+						if (parameterRaw === 0x01) this.emit(hasKnobRelease ? 'down' : 'push', action)
+						if (parameterRaw === 0x00 && hasKnobRelease) this.emit('up', action)
 					} else if (action.type === 'push') {
 						this.emit('push', action)
 					} else if (action.type === 'rotateLeft') {
@@ -81,11 +125,84 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		this.heartbeatInterval = setInterval(() => void this.sendHeartbeat(), 8000)
 	}
 
-	private async sendCmdSimple(dataArr: Array<number>): Promise<void> {
+	private handleTouchReport(packet: Buffer, inputIds: number[], regionWidth: number): void {
+		if (packet.length < 14 || packet[2] > 3) return
+		this.usesTouchReports = true
+
+		const phase = packet[2]
+		const x = packet.readUInt16BE(4)
+		if (phase === 0) {
+			const inputId = inputIds[Math.floor(x / regionWidth)]
+			const action = this.model.inputs.find((input) => input.id === inputId)
+			if (this.activeTouchSoftKey?.id !== action?.id) {
+				this.releaseTouchSoftKey()
+				this.activeTouchSoftKey = action
+				if (action) this.emit('down', action)
+			}
+			this.touchStartX = action ? x : undefined
+		} else if (phase === 2 || phase === 3) {
+			const startX = this.touchStartX
+			this.touchStartX = undefined
+			this.releaseTouchSoftKey()
+
+			// TP reports down, move, up and cancel. Detect a swipe on up using
+			// half a soft-key width as the minimum horizontal travel.
+			if (phase === 3 || startX === undefined || x >= inputIds.length * regionWidth) return
+			const travel = x - startX
+			if (Math.abs(travel) < regionWidth / 2) return
+
+			const direction = travel < 0 ? -1 : 1
+			const swipe = this.model.inputs.find((input) => input.type === (direction < 0 ? 'swipeLeft' : 'swipeRight'))
+			if (swipe) this.emit('rotate', swipe, direction)
+		}
+	}
+
+	private releaseTouchSoftKey(): void {
+		const action = this.activeTouchSoftKey
+		this.activeTouchSoftKey = undefined
+		if (action) this.emit('up', action)
+	}
+
+	private handleLegacyTouchSoftKey(data: Buffer): boolean {
+		const touch = this.model.touchSoftKeys
+		if (!touch || data.length < 13 || data[3] !== 0x00 || data[4] !== 0x00) return false
+
+		const isTouchFunction = data[9] === 0x00 || touch.inputIds.includes(data[9])
+		if (data[10] === 0x01 && isTouchFunction) {
+			const x = (data[11] << 8) | data[12]
+			const clampedX = Math.max(touch.minX, Math.min(touch.maxX, x))
+			const region = Math.min(
+				touch.inputIds.length - 1,
+				Math.floor(((clampedX - touch.minX) * touch.inputIds.length) / (touch.maxX - touch.minX + 1)),
+			)
+			const action = this.model.inputs.find((input) => input.id === touch.inputIds[region])
+			if (action) {
+				if (this.activeTouchSoftKey && this.activeTouchSoftKey.id !== action.id) {
+					this.emit('up', this.activeTouchSoftKey)
+				}
+				this.activeTouchSoftKey = action
+				this.emit('down', action)
+			}
+			return true
+		}
+
+		if (data[10] !== 0x01 && this.activeTouchSoftKey) {
+			this.releaseTouchSoftKey()
+
+			const releaseAction = this.model.inputs.find((input) => input.id === data[9])
+			if (releaseAction?.type === 'swipeLeft') this.emit('rotate', releaseAction, -1)
+			if (releaseAction?.type === 'swipeRight') this.emit('rotate', releaseAction, 1)
+			return true
+		}
+
+		return false
+	}
+
+	private async sendCmdSimple(dataArr: Array<number>, reportId = this.model.reportId ?? 0): Promise<void> {
 		const data = Buffer.from(dataArr)
 
 		const prefixbuffer = Buffer.from(StreamDock.cmdPrefix)
-		const writebuffer = Buffer.concat([Buffer.from([0]), prefixbuffer, data], this.packetSize + 1)
+		const writebuffer = Buffer.concat([Buffer.from([reportId]), prefixbuffer, data], this.packetSize + 1)
 
 		if (dataArr.length + prefixbuffer.byteLength > this.packetSize) {
 			console.error(
@@ -105,10 +222,11 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 	 */
 	private async sendDrawKeyCmd(data: Buffer): Promise<void> {
 		const ps: Promise<void>[] = []
+		const imagePacketDataSize = this.model.imagePacketDataSize ?? this.packetSize
 
-		for (let offset = 0; offset < data.byteLength; offset += this.packetSize) {
-			const chunk = data.subarray(offset, offset + this.packetSize)
-			const writebuffer = Buffer.concat([Buffer.from([0]), chunk], this.packetSize + 1)
+		for (let offset = 0; offset < data.byteLength; offset += imagePacketDataSize) {
+			const chunk = data.subarray(offset, offset + imagePacketDataSize)
+			const writebuffer = Buffer.concat([Buffer.from([this.model.reportId ?? 0]), chunk], this.packetSize + 1)
 
 			ps.push(
 				this.writeRaw(writebuffer).catch((e) => {
@@ -157,6 +275,41 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		return this.model.iconRotation
 	}
 
+	get ledArrayLength(): number {
+		return this.model.ledArrayLength ?? 3
+	}
+
+	/**
+	 * The mode the device should be switched into on connect, if it supports multiple modes.
+	 */
+	get initialMode(): number | undefined {
+		return this.model.initialMode
+	}
+
+	get disableWebModeOnConnect(): boolean {
+		return this.model.disableWebModeOnConnect ?? false
+	}
+
+	async disableWebMode(): Promise<void> {
+		await this.sendCmdSimple([0x57, 0x45, 0x42, 0x00]).catch((e) => {
+			console.error('Sending Web mode off command to Stream Dock failed ' + e)
+		})
+	}
+
+	/**
+	 * Switch the operating mode of the device.
+	 *
+	 * Some devices (such as the N1) have multiple modes - on the N1 these are calculator,
+	 * numpad and console, normally toggled by pressing the rotary encoder. Only in console
+	 * mode (0x33) does the device render images sent by the software, so it must be switched
+	 * into that mode when connecting.
+	 */
+	async setMode(mode: number): Promise<void> {
+		await this.sendCmdSimple([0x4d, 0x4f, 0x44, 0, 0, mode]).catch((e) => {
+			console.error('Sending mode switch to Stream Dock failed ' + e)
+		})
+	}
+
 	async writeRaw(data: Buffer): Promise<void> {
 		const written = await this.device.write(data).catch(() => {
 			throw new Error('Write to Stream Dock failed!')
@@ -176,6 +329,14 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		await this.sendCmdSimple([0x43, 0x4c, 0x45, 0, 0, 0, 0xff]).catch((e) => {
 			console.error('Sending clear panel to Stream Dock failed ' + e)
 		})
+	}
+
+	async clearPanelAfterImages(): Promise<void> {
+		const operation = this.imageTransferQueue.then(async () => {
+			await this.clearPanel()
+		})
+		this.imageTransferQueue = operation.catch(() => undefined)
+		await operation
 	}
 
 	async refresh(): Promise<void> {
@@ -204,7 +365,34 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		})
 	}
 
+	async setVibration(enabled: boolean): Promise<void> {
+		await this.sendCmdSimple([
+			0x51,
+			0x55,
+			0x43,
+			0x4d,
+			0x44,
+			0x1f,
+			0x11,
+			0x00,
+			enabled ? 0x11 : 0xff,
+			0x00,
+			0x11,
+			0x00,
+		]).catch((e) => {
+			console.error('Sending vibration setting to Stream Dock failed ' + e)
+		})
+	}
+
 	async setKeyImage(column: number, row: number, imageBuffer: Buffer): Promise<void> {
+		const transfer = this.imageTransferQueue.then(async () => {
+			await this.setKeyImageNow(column, row, imageBuffer)
+		})
+		this.imageTransferQueue = transfer.catch(() => undefined)
+		await transfer
+	}
+
+	private async setKeyImageNow(column: number, row: number, imageBuffer: Buffer): Promise<void> {
 		const output = this.outputs.find((output) => output.row === row && output.column === column)
 
 		if (!output || output.type != 'lcd') return
@@ -246,7 +434,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 
 		// console.log(`image ${row}/${column} size ${size}B compression ${quality}%`)
 
-		this.sendCmdSimple([
+		await this.sendCmdSimple([
 			0x42,
 			0x41,
 			0x54,
@@ -258,7 +446,7 @@ export class StreamDock extends EventEmitter<StreamDockEvents> {
 		]).catch((e) => {
 			console.error('Sending set image command to Stream Dock failed ' + e)
 		})
-		this.sendDrawKeyCmd(imgData).catch((e) => {
+		await this.sendDrawKeyCmd(imgData).catch((e) => {
 			console.error('Sending image data to Stream Dock failed ' + e)
 		})
 		await this.refresh()

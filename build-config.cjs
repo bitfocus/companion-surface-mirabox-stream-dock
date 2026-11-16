@@ -1,4 +1,6 @@
 module.exports = {
 	forceRemoveNodeGypFromPkg: true,
-	prebuilds: ['@julusian/jpeg-turbo', '@julusian/image-rs', 'node-hid'],
+	// Keep node-hid's package layout so the firmware reader can resolve its HIDAPI binding.
+	externals: { koffi: 'commonjs koffi', 'node-hid': 'commonjs node-hid' },
+	prebuilds: ['@julusian/jpeg-turbo', '@julusian/image-rs'],
 }

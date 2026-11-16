@@ -2,16 +2,20 @@ import type { StreamDockModelDefinition } from './list.js'
 
 export const N3_293N3Definition: StreamDockModelDefinition = {
 	productName: 'Stream Dock N3',
-	iconRotation: 270,
+	iconRotation: -90,
 	usbIds: [
 		// TODO: verify these
 		{
 			vendorId: 0x6602,
-			productIds: [0x1003],
+			productIds: [0x1003, 0x1000, 0x1002, 0x2929],
 		},
 		{
 			vendorId: 0x6603,
 			productIds: [0x1003],
+		},
+		{
+			vendorId: 0x6603,
+			productIds: [0x1002],
 		},
 		{
 			vendorId: 0x5548,

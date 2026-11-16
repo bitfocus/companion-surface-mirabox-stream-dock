@@ -22,6 +22,11 @@ export class MiraboxWrapper implements SurfaceInstance {
 	readonly #surfaceId: string
 	readonly #context: SurfaceContext
 	private config: Record<string, any> = {}
+	private readonly ledColors = new Map<number, [number, number, number]>()
+	private readonly lcdImages = new Map<string, Buffer>()
+	private modeRefresh: Promise<void> = Promise.resolve()
+	private initialized = false
+
 	private brightness = 100
 	public get surfaceId(): string {
 		return this.#surfaceId
@@ -36,9 +41,10 @@ export class MiraboxWrapper implements SurfaceInstance {
 		device: HIDAsync,
 		model: StreamDockModelDefinition,
 		context: SurfaceContext,
+		firmwareRevision?: number,
 	) {
 		this.#logger = createModuleLogger(`Instance/${surfaceId}`)
-		this.#streamDock = new StreamDock(deviceInfo, device, model)
+		this.#streamDock = new StreamDock(deviceInfo, device, model, firmwareRevision)
 		this.#surfaceId = surfaceId
 		this.#context = context
 
@@ -63,12 +69,39 @@ export class MiraboxWrapper implements SurfaceInstance {
 				this.#context.rotateLeftById(getControlId(control))
 			}
 		})
+
+		this.#streamDock.on('mode', () => {
+			// The first mode report completes init(). Images are not available yet,
+			// so only later reports should trigger restoration of cached images.
+			if (!this.initialized) return
+			this.modeRefresh = this.modeRefresh
+				.then(async () => {
+					await this.#streamDock.clearPanelAfterImages()
+					for (const output of this.#streamDock.outputs) {
+						if (output.type !== 'lcd') continue
+						const image = this.lcdImages.get(getControlId(output))
+						if (image) await this.#streamDock.setKeyImage(output.column, output.row, image)
+					}
+				})
+				.catch((e) => {
+					this.#logger.warn(`Mode refresh failed: ${e}`)
+				})
+		})
 	}
 
 	async init(): Promise<void> {
+		if (this.#streamDock.disableWebModeOnConnect) {
+			await this.#streamDock.disableWebMode()
+			await setTimeout(100)
+		}
+		if (this.#streamDock.initialMode !== undefined) {
+			await this.#streamDock.setMode(this.#streamDock.initialMode)
+			await setTimeout(200)
+		}
 		await this.#streamDock.wakeScreen()
 		await this.#streamDock.clearPanel()
 		await this.#streamDock.setLedBrightness(0)
+		this.initialized = true
 	}
 
 	async close(): Promise<void> {
@@ -84,6 +117,9 @@ export class MiraboxWrapper implements SurfaceInstance {
 	async updateConfig(config: Record<string, any>): Promise<void> {
 		this.config = { ...this.config, ...config }
 		console.log('updateConfig called', JSON.stringify(this.config, null, 2))
+		if (typeof this.config.vibrationEnabled === 'boolean') {
+			await this.#streamDock.setVibration(this.config.vibrationEnabled)
+		}
 		if (this.config.LEDmode === 'animation') {
 			await this.#streamDock.setLedArray([0, 0, 0])
 		} else if (this.config.LEDmode === 'off') {
@@ -146,6 +182,7 @@ export class MiraboxWrapper implements SurfaceInstance {
 				const computedImage = await image.toBuffer('rgb')
 				rotatedBitmap = computedImage.buffer
 			}
+			this.lcdImages.set(drawProps.controlId, Buffer.from(rotatedBitmap))
 
 			const maxAttempts = 3
 			for (let attempts = 1; attempts <= maxAttempts; attempts++) {
@@ -180,7 +217,16 @@ export class MiraboxWrapper implements SurfaceInstance {
 				}
 			}
 
-			if (v > 0) {
+			if (this.#streamDock.ledArrayLength > 3) {
+				this.ledColors.set(output.id, v > 0 ? hsvToRgb(h, s, v) : [0, 0, 0])
+				const ledValues = new Array<number>(this.#streamDock.ledArrayLength).fill(0)
+				for (const [ledId, color] of this.ledColors) {
+					const offset = ledId * 3
+					if (offset + 2 < ledValues.length) ledValues.splice(offset, 3, ...color)
+				}
+
+				await Promise.all([this.#streamDock.setLedArray(ledValues), this.#streamDock.setLedBrightness(this.brightness)])
+			} else if (v > 0) {
 				await Promise.all([
 					this.#streamDock.setLedArray(hsvToRgb(h, s, v)),
 					this.#streamDock.setLedBrightness(this.brightness),

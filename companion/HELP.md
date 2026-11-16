@@ -49,11 +49,65 @@ The LCD strip also supports a swipe gesture. Swipe events are mapped to the rota
 
 ![Stream Dock N4 mapping](images/mirabox-streamdock.png?raw=true 'Stream Dock N4 mapping')
 
+### Mirabox Stream Dock N4 Pro
+
+_5×2 LCD keys, 4 rotary encoders with RGB LEDs, LCD strip with touch buttons_
+
+The N4 Pro uses the same Companion grid layout as the N4. The two rows of five LCD keys map directly to the first two rows. The four soft keys on the LCD strip are mapped to the first four buttons in the third row, and the four rotary encoders are mapped to the first four buttons in the fourth row.
+
+The touch strip is divided into four soft-key regions that provide separate press and release events. On firmware revision `013` or later, the rotary encoders also report press and release separately. Companion treats each encoder press as a click on older firmware such as `V4.N4 Pro E_HXWY.02.012`, or when the version is unavailable.
+
+Firmware revision `016` or later is required for the updated touch-strip support. Update your N4 Pro to revision `016` or later to use the new touch reports for soft-key press/release and swipe gestures. When this firmware revision is detected, Companion renders each of the four touch-strip regions at `200 x 112` pixels. Older firmware continues to use the legacy touch handling and image dimensions. This requirement is separate from revision `013`, which adds independent rotary encoder press and release events.
+
+To use a rotary encoder, enable the `Enable Rotary Actions` checkbox for its button. The LCD strip swipe gesture is mapped to the rotary actions of the fifth button in the third row: swiping left runs the rotate-left actions and swiping right runs the rotate-right actions.
+
+Each rotary encoder has an RGB LED. The four LEDs follow the dominant colors of the four rotary buttons in the fourth row, so they can be controlled independently through the corresponding Companion button styles. The surface brightness setting also controls the LED brightness.
+
+Vibration can be enabled or disabled in the N4 Pro surface settings. It is enabled by default.
+
+![Stream Dock N4 Pro mapping](images/mirabox-streamdock-n4-pro.png?raw=true 'Stream Dock N4 Pro mapping')
+
+### Mirabox Stream Dock K1 Pro
+
+_3 rotary encoders, 3×2 LCD keys_
+
+K1 Pro firmware `V3.010.03.020` or later is required for correct rotary encoder press and release events. With older firmware, an encoder release may not be reported correctly.
+
+### Mirabox Stream Dock N1
+
+_3×6 LCD keys, 2 buttons, 1 rotary encoder_
+
+The eighteen LCD keys use a three-column by six-row Companion grid. The two buttons and rotary encoder above the main key area share the first row positions with the three smaller LCD displays. Enable `Enable Rotary Actions` on the rotary encoder button to configure its left- and right-rotation actions.
+
+The N1 can operate in calculator, numeric keypad and console modes. Companion automatically switches it to console mode when connecting because this is the mode that accepts Companion images. Switching modes clears the device displays; when the N1 returns to console mode, Companion restores the configured key images automatically.
+
+### Mirabox Stream Dock M3
+
+_5×3 LCD keys, 3 rotary encoders_
+
+The fifteen LCD keys map directly to a five-column by three-row Companion grid. The three rotary encoders are placed in an additional column on the right, one encoder per row. Each encoder supports pressing, releasing and rotating in both directions. Enable `Enable Rotary Actions` on an encoder button to configure its left- and right-rotation actions.
+
 ### Mirabox Stream Dock M18V3
 
 _5x3 LCD keys, 3 buttons, 2 LEDs_
 
 Currently the LCD keys and the regular buttons are supported.
+
+### Mirabox Stream Dock H1 Pro
+
+_4×3 LCD keys_
+
+The twelve LCD keys map directly to a four-column by three-row Companion grid. Each key provides separate press and release events.
+
+### Mirabox Stream Dock Mini / MiniW
+
+_3×2 LCD keys, 2 three-way switches_
+
+Mini and MiniW use the same three-column by four-row Companion layout. The six LCD keys occupy the first two rows. Each key uses a 64×64 image and provides separate press and release events.
+
+The first switch occupies the first three columns of the third row, and the second switch occupies the same columns of the fourth row. For each switch, the columns map to left, push, and right. Each action has separate press and release events, so it can be held until the switch returns to its neutral position.
+
+LCD key images are the only supported output on these models.
 
 ### Mirabox Stream Dock HSV293S, Ajazz AKP153, Ajazz AKP153E
 
