@@ -17,6 +17,7 @@ import { StreonorS15Definition } from './Streonor-S15.js'
 import { N1_Definition } from './N1.js'
 import { Ajaz_AKP05EDefinition } from './Ajazz-AKP05E.js'
 import { soomfon_CN002Definition } from './soomfon-CN002.js'
+import { soomfon_CN003Definition } from './soomfon-CN003.js'
 
 export interface StreamDockModelDefinition {
 	productName: string
@@ -95,4 +96,5 @@ export const AllModels: StreamDockModelDefinition[] = [
 	N1_Definition,
 	Ajaz_AKP05EDefinition,
 	soomfon_CN002Definition,
+	soomfon_CN003Definition,
 ]
