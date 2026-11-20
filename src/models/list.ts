@@ -14,6 +14,7 @@ import { Ajaz_AKP153EDefinition } from './Ajazz-AKP153E.js'
 import { Ajaz_AKP03EDefinition } from './Ajazz-AKP03E.js'
 import { Mirabox_N4_ProDefinition } from './Mirabox-N4-Pro.js'
 import { StreonorS15Definition } from './Streonor-S15.js'
+import { StreonorS32Definition } from './Streonor-S32.js'
 import { N1_Definition } from './N1.js'
 import { Ajaz_AKP05EDefinition } from './Ajazz-AKP05E.js'
 import { soomfon_CN002Definition } from './soomfon-CN002.js'
@@ -95,4 +96,5 @@ export const AllModels: StreamDockModelDefinition[] = [
 	N1_Definition,
 	Ajaz_AKP05EDefinition,
 	soomfon_CN002Definition,
+	StreonorS32Definition,
 ]
